@@ -363,7 +363,7 @@
   const VARIANT_NOTES = {
     root:
       "Recon only: this shows field/arg names and unresolved types (a field like [Post!]! " +
-      "just shows as \"wrapped\", not what's inside), and has no full type list — it can't be " +
+      "just shows as \"wrapped\", not what's inside), and has no full type list and it can't be " +
       'loaded into the builder below. Try "Basic schema" for something you can build queries from.',
   };
 
