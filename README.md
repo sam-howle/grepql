@@ -1,6 +1,6 @@
 # Grepql
 
-Grepql is a local tool for quickly enumerating GraphQL schemas and building queries and mutations by clicking through a schema, instead of hand-writing them from a raw introspection JSON dump.
+Grepql is a tool for quickly exploring GraphQL schemas and building queries and mutations from the fields and arguments they expose.
 
 ![Grepql demo](demo.gif)
 
@@ -10,15 +10,23 @@ Grepql takes the opposite approach. It's a single-page, pure HTML/CSS/JS app wit
 
 ## Installation
 
-```
-git clone https://github.com/sam-howle/grepql
+Grepql is a static HTML/JS application, so there's nothing to install or build:
+
+```bash
+git clone https://github.com/sam-howle/grepql.git
 ```
 
 Then open `index.html` in your favorite web browser.
 
+If you just want to give it a quick spin, there's also a hosted version at [sam-howle.github.io/grepql](https://sam-howle.github.io/grepql/). It runs entirely client-side and is intended as a convenient way to try out Grepql's functionality without cloning the repository.
+
+A sample introspection response is included at [`examples/sample-introspection.json`](examples/sample-introspection.json) if you need something to test it with.
+
+For actual engagement use, running Grepql locally is recommended, particularly when working with clients' schemas or other sensitive data. The hosted version doesn't send that data anywhere either, but running Grepql locally lets you review the exact code once and know it won't change underneath you.
+
 ## Using it
 
-1. Paste or upload a schema. Introspection JSON results, SDL text (including output from tools like Clairvoyance), and `.graphql`/`.gql` files are all accepted.
+1. Paste or upload a schema. Introspection JSON results, SDL text (including output from tools like [Clairvoyance](https://github.com/y0k4i-1337/clairvoyancex)), and `.graphql`/`.gql` files are all accepted.
 2. Search through the schema and build a query or mutation in the GUI, filling in argument fields as needed.
 3. Copy the generated query.
 4. Feed it to Burp, Postman, curl, or whatever you're already using.
