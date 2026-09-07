@@ -1,0 +1,12 @@
+{
+  "name": "graphqlquerybuilder-vendor-build",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Throwaway build dir used once to produce vendor/graphql-bundle.js. Not part of the shipped app.",
+  "dependencies": {
+    "graphql": "^16.9.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  }
+}

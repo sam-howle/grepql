@@ -1,0 +1,493 @@
+"""A small schema exercising the tricky cases: interfaces, unions, enums,
+input objects, list args, and a deprecated field. Useful for manually
+testing the builder without needing a live target."""
+
+type Query {
+  me: User
+  search(term: String!, limit: Int): [SearchResult!]!
+  node(id: ID!): Node
+  products(category: String, limit: Int): [Product!]!
+  product(id: ID!): Product
+  orders(status: OrderStatus): [Order!]!
+  order(id: ID!): Order
+  invoices(orderId: ID!): [Invoice!]!
+  shipments(orderId: ID!): [Shipment!]!
+  warehouses: [Warehouse!]!
+  suppliers: [Supplier!]!
+  notifications(unreadOnly: Boolean): [Notification!]!
+  auditLogs(since: String): [AuditLog!]!
+  teams: [Team!]!
+  team(id: ID!): Team
+  organizations: [Organization!]!
+  billingAccounts: [BillingAccount!]!
+  subscriptions(plan: SubscriptionPlan): [BillingSubscription!]!
+  webhooks: [Webhook!]!
+  apiKeys(ownerId: Int!): [ApiKey!]!
+  featureFlags: [FeatureFlag!]!
+  campaigns(active: Boolean): [Campaign!]!
+  coupons: [Coupon!]!
+  supportTickets(priority: TicketPriority): [SupportTicket!]!
+  chatMessages(channelId: ID!): [ChatMessage!]!
+  analyticsReports: [AnalyticsReport!]!
+  categories: [Category!]!
+  reviews(productId: ID!): [Review!]!
+  currencies: [Currency!]!
+  exchangeRates(base: String!): [ExchangeRate!]!
+  regions: [Region!]!
+  taxRates(regionId: ID!): [TaxRate!]!
+  auditTrails(entityId: ID!): [AuditLog!]!
+  loyaltyPrograms: [LoyaltyProgram!]!
+  giftCards(code: String): [GiftCard!]!
+  returnRequests(orderId: ID!): [ReturnRequest!]!
+  bundles: [Bundle!]!
+  priceLists: [PriceList!]!
+  vendorContracts: [VendorContract!]!
+  fulfillmentCenters: [FulfillmentCenter!]!
+  inventorySnapshots(warehouseId: ID!): [InventorySnapshot!]!
+  user(id: ID!): User
+  wishlists(userId: ID!): [Wishlist!]!
+  savedSearches(userId: ID!): [SavedSearch!]!
+  recommendationFeeds(userId: ID!): [RecommendationFeed!]!
+  abTestExperiments: [AbTestExperiment!]!
+  translationBundles(locale: String!): [TranslationBundle!]!
+  healthCheck: HealthStatus!
+  serverStatus: ServerStatus!
+}
+
+type Mutation {
+  createPost(input: CreatePostInput!): Post!
+  bulkCreatePosts(inputs: [CreatePostInput!]!): [Post!]!
+  deletePost(id: ID!): Boolean!
+  setRole(userId: ID!, role: Role!): User!
+  createOrder(input: CreateOrderInput!): Order!
+  cancelOrder(id: ID!): Order!
+  markNotificationRead(id: ID!): Notification!
+  createWebhook(url: String!, events: [String!]!): Webhook!
+  deleteWebhook(id: ID!): Boolean!
+  toggleFeatureFlag(key: String!, enabled: Boolean!): FeatureFlag!
+  applyCoupon(orderId: ID!, code: String!): Order!
+}
+
+interface Node {
+  id: ID!
+}
+
+type User implements Node {
+  id: ID!
+  handle: String!
+  email: String @deprecated(reason: "Use contactEmail instead")
+  contactEmail: String
+  passwordHash: String
+  role: Role!
+  posts(tags: [String!]): [Post!]!
+}
+
+type Post implements Node {
+  id: ID!
+  title: String!
+  body: String!
+  author: User!
+  tags: [String!]
+}
+
+union SearchResult = User | Post
+
+enum Role {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+input CreatePostInput {
+  title: String!
+  body: String!
+  tags: [String!]
+  authorId: ID!
+  meta: PostMetaInput
+}
+
+input PostMetaInput {
+  featured: Boolean!
+  visibility: Role!
+  note: String
+}
+
+# --- The rest of this schema is unrelated filler (products, orders, billing,
+# support, etc.) meant to bulk out the type list for demoing search. ---
+
+type Product {
+  id: ID!
+  sku: String!
+  name: String!
+  description: String
+  price: Float!
+  currency: String!
+  category: Category
+  reviews: [Review!]!
+  inStock: Boolean!
+}
+
+type Category {
+  id: ID!
+  name: String!
+  parent: Category
+  products(limit: Int): [Product!]!
+}
+
+type Review {
+  id: ID!
+  product: Product!
+  authorHandle: String!
+  rating: Int!
+  comment: String
+  createdAt: String!
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  CANCELLED
+  REFUNDED
+}
+
+type Order {
+  id: ID!
+  customerId: ID!
+  customerEmail: String!
+  status: OrderStatus!
+  items: [OrderItem!]!
+  total: Float!
+  currency: String!
+  placedAt: String!
+  invoice: Invoice
+  shipment: Shipment
+}
+
+type OrderItem {
+  id: ID!
+  product: Product!
+  quantity: Int!
+  unitPrice: Float!
+}
+
+input CreateOrderInput {
+  customerId: ID!
+  items: [OrderItemInput!]!
+  couponCode: String
+}
+
+input OrderItemInput {
+  productId: ID!
+  quantity: Int!
+}
+
+type Invoice {
+  id: ID!
+  order: Order!
+  issuedAt: String!
+  dueAt: String!
+  amountDue: Float!
+  paid: Boolean!
+}
+
+enum ShipmentStatus {
+  LABEL_CREATED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  LOST
+}
+
+type Shipment {
+  id: ID!
+  order: Order!
+  status: ShipmentStatus!
+  carrier: String!
+  trackingNumber: String
+  warehouse: Warehouse
+}
+
+type Warehouse {
+  id: ID!
+  name: String!
+  region: Region!
+  capacity: Int!
+}
+
+type Supplier {
+  id: ID!
+  name: String!
+  contactEmail: String!
+  products: [Product!]!
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+}
+
+type Notification {
+  id: ID!
+  recipientEmail: String!
+  channel: NotificationChannel!
+  message: String!
+  read: Boolean!
+  createdAt: String!
+}
+
+type AuditLog {
+  id: ID!
+  actorId: ID!
+  action: String!
+  targetType: String
+  targetId: ID
+  createdAt: String!
+}
+
+type Team {
+  id: ID!
+  name: String!
+  memberCount: Int!
+  organization: Organization!
+}
+
+type Organization {
+  id: ID!
+  name: String!
+  teams: [Team!]!
+  billingAccount: BillingAccount
+}
+
+type BillingAccount {
+  id: ID!
+  organization: Organization!
+  balance: Float!
+  currency: String!
+  subscriptions: [BillingSubscription!]!
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+type BillingSubscription {
+  id: ID!
+  plan: SubscriptionPlan!
+  startedAt: String!
+  renewsAt: String!
+  seats: Int!
+}
+
+type Webhook {
+  id: ID!
+  url: String!
+  events: [String!]!
+  active: Boolean!
+  createdAt: String!
+}
+
+type ApiKey {
+  id: ID!
+  label: String!
+  lastFourChars: String!
+  createdAt: String!
+  lastUsedAt: String
+}
+
+type FeatureFlag {
+  key: String!
+  description: String
+  enabled: Boolean!
+  rolloutPercentage: Int
+}
+
+type Campaign {
+  id: ID!
+  name: String!
+  active: Boolean!
+  startsAt: String!
+  endsAt: String
+  coupons: [Coupon!]!
+}
+
+type Coupon {
+  id: ID!
+  code: String!
+  percentOff: Int
+  amountOff: Float
+  expiresAt: String
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+type SupportTicket {
+  id: ID!
+  subject: String!
+  priority: TicketPriority!
+  submittedByEmail: String!
+  assignedToEmail: String
+  resolved: Boolean!
+}
+
+type ChatMessage {
+  id: ID!
+  channelId: ID!
+  authorHandle: String!
+  body: String!
+  sentAt: String!
+}
+
+type AnalyticsReport {
+  id: ID!
+  name: String!
+  generatedAt: String!
+  metrics: [AnalyticsMetric!]!
+}
+
+type AnalyticsMetric {
+  name: String!
+  value: Float!
+  unit: String
+}
+
+type Currency {
+  code: String!
+  name: String!
+  symbol: String!
+}
+
+type ExchangeRate {
+  base: String!
+  quote: String!
+  rate: Float!
+  updatedAt: String!
+}
+
+type Region {
+  id: ID!
+  name: String!
+  countryCode: String!
+  warehouses: [Warehouse!]!
+}
+
+type TaxRate {
+  id: ID!
+  region: Region!
+  percentage: Float!
+}
+
+type HealthStatus {
+  ok: Boolean!
+  uptimeSeconds: Int!
+  version: String!
+}
+
+type ServerStatus {
+  environment: String!
+  region: String!
+  deployedAt: String!
+}
+
+type LoyaltyProgram {
+  id: ID!
+  name: String!
+  pointsPerDollar: Float!
+  tiers: [String!]!
+}
+
+type GiftCard {
+  id: ID!
+  code: String!
+  balance: Float!
+  currency: String!
+  expiresAt: String
+}
+
+type ReturnRequest {
+  id: ID!
+  order: Order!
+  reason: String!
+  approved: Boolean
+  createdAt: String!
+}
+
+type Bundle {
+  id: ID!
+  name: String!
+  products: [Product!]!
+  discountPercent: Float
+}
+
+type PriceList {
+  id: ID!
+  name: String!
+  currency: String!
+  region: Region
+}
+
+type VendorContract {
+  id: ID!
+  supplier: Supplier!
+  startsAt: String!
+  endsAt: String
+  terms: String
+}
+
+type FulfillmentCenter {
+  id: ID!
+  name: String!
+  warehouse: Warehouse!
+  capacityPerDay: Int!
+}
+
+type InventorySnapshot {
+  id: ID!
+  warehouse: Warehouse!
+  product: Product!
+  quantityOnHand: Int!
+  takenAt: String!
+}
+
+type Wishlist {
+  id: ID!
+  ownerId: ID!
+  products: [Product!]!
+}
+
+type SavedSearch {
+  id: ID!
+  ownerId: ID!
+  query: String!
+  createdAt: String!
+}
+
+type RecommendationFeed {
+  id: ID!
+  ownerId: ID!
+  items: [Product!]!
+  generatedAt: String!
+}
+
+type AbTestExperiment {
+  id: ID!
+  name: String!
+  variants: [String!]!
+  active: Boolean!
+}
+
+type TranslationBundle {
+  locale: String!
+  keys: [String!]!
+  updatedAt: String!
+}

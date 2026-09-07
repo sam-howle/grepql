@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Grepql — quickly search through schemas and build GraphQL queries." />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none';" />
+<title>Grepql</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-brand">
+    <h1>Grepql Query Builder</h1>
+    <span class="topbar-tagline">Quickly enumerate GraphQL schemas & build queries</span>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-status" id="schema-status"></div>
+    <div class="settings-menu">
+      <button id="settings-btn" class="btn btn-small" type="button" aria-haspopup="true" aria-expanded="false">Settings</button>
+      <div id="settings-popover" class="settings-popover" hidden>
+        <div class="settings-row">
+          <label class="settings-checkbox-label">
+            <input type="checkbox" id="setting-persistence-checkbox" />
+            Save schema between sessions
+          </label>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">Forget saved schema after</span>
+          <div class="settings-ttl-inputs">
+            <input type="number" id="setting-ttl-days" min="0" max="3650" />
+            <label for="setting-ttl-days">d</label>
+            <input type="number" id="setting-ttl-hours" min="0" max="23" />
+            <label for="setting-ttl-hours">h</label>
+            <input type="number" id="setting-ttl-minutes" min="0" max="59" />
+            <label for="setting-ttl-minutes">m</label>
+          </div>
+        </div>
+        <div class="settings-row">
+          <button id="settings-clear-cache-btn" class="btn btn-small" type="button">Delete cached schema data</button>
+          <p class="settings-hint">Clears whatever's currently saved right now. Doesn't change the setting above.</p>
+        </div>
+        <div class="settings-row settings-actions">
+          <button id="settings-defaults-btn" class="btn btn-small" type="button">Defaults</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section id="landing">
+    <div class="landing-inner">
+      <h2>1. Get a schema</h2>
+      <p>
+        If introspection is enabled on the target, run this query against the GraphQL
+        endpoint (Burp Repeater, Postman, whatever you're already using) and paste the
+        JSON response below. Or drop in a <code>.graphql</code> / <code>.gql</code> SDL
+        file if you already have the schema as text.
+      </p>
+      <div class="introspection-box">
+        <pre id="default-introspection-query"></pre>
+        <div class="copy-row">
+          <button id="copy-introspection-btn" class="btn">Copy introspection query</button>
+          <div class="one-line-label-group">
+            <label class="one-line-label">
+              <input type="checkbox" id="introspection-one-line-checkbox" />
+              Copy as one line (recommended for Burp)
+            </label>
+            <label class="one-line-label">
+              <input type="checkbox" id="introspection-url-encode-checkbox" />
+              URL-encode output (single line)
+            </label>
+          </div>
+        </div>
+        <p class="introspection-variant-label">Introspection failing? Try a smaller query</p>
+        <select id="introspection-variant-select" class="variant-select">
+          <option value="full">Full introspection</option>
+          <option value="basic">Basic schema</option>
+          <option value="root">Root types only</option>
+        </select>
+        <p id="variant-note" class="variant-note" hidden></p>
+        <p class="hacktricks-note">
+          Still having trouble? See the
+          <a href="https://hacktricks.wiki/en/network-services-pentesting/pentesting-web/graphql.html#graphql-without-introspection" target="_blank" rel="noopener noreferrer">Hacktricks GraphQL Methodology</a>
+        </p>
+      </div>
+
+      <h2>2. Load it here</h2>
+      <div class="import-row">
+        <textarea id="schema-input" placeholder="Paste an introspection JSON result, or raw SDL (type Query { ... }), here..."></textarea>
+      </div>
+      <p class="import-file-label">Or upload the GraphQL schema or introspection result here:</p>
+      <div class="import-row import-actions">
+        <input type="file" id="schema-file" accept=".json,.graphql,.gql,.txt" />
+        <button id="load-schema-btn" class="btn btn-primary">Load schema</button>
+        <button id="clear-schema-input-btn" class="btn btn-small">Clear</button>
+      </div>
+      <div id="import-error" class="error-box" hidden></div>
+    </div>
+  </section>
+
+  <section id="builder" hidden>
+    <div class="builder-toolbar">
+      <button id="load-different-btn" class="btn btn-small">Import new schema</button>
+      <div class="tabs" id="operation-tabs"></div>
+    </div>
+
+    <div class="builder-columns">
+      <div class="explorer-pane">
+        <div class="explorer-toolbar">
+          <input type="text" id="field-filter" placeholder="Filter fields by name..." />
+          <button id="clear-all-btn" class="btn btn-small">Unselect All</button>
+        </div>
+        <div id="field-tree" class="field-tree"></div>
+      </div>
+
+      <div class="query-pane">
+        <div class="query-pane-header">
+          <label for="op-name-input">Operation name (optional):</label>
+          <input type="text" id="op-name-input" placeholder="MyOperation" />
+        </div>
+        <pre id="query-output" class="query-output"></pre>
+        <div class="copy-row">
+          <button id="copy-query-btn" class="btn btn-primary">Copy query to clipboard</button>
+          <div class="one-line-label-group">
+            <label class="one-line-label">
+              <input type="checkbox" id="one-line-checkbox" />
+              Copy as one line (recommended for Burp)
+            </label>
+            <label class="one-line-label">
+              <input type="checkbox" id="url-encode-checkbox" />
+              URL-encode output (single line)
+            </label>
+          </div>
+        </div>
+        <div id="warnings" class="warnings-box" hidden></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="vendor/graphql-bundle.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
